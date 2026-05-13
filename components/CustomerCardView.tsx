@@ -1,13 +1,14 @@
 import QRCode from 'qrcode'
 import { headers } from 'next/headers'
 import type { Customer } from '@/lib/supabase'
-import Image from 'next/image'
 
-const REWARDS: Record<number, string> = {
-  3: 'Cookie 🍪',
-  6: 'Matcha 🍵',
-  10: 'Toast 🍞',
-}
+const BRAND = '#C2410C'
+
+const TIERS = [
+  { points: 150,  reward: 'Free Fried Plantain',  emoji: '🍌' },
+  { points: 400,  reward: 'Free Nigerian Guinness', emoji: '🍺' },
+  { points: 1000, reward: 'Free Main Dish',         emoji: '🍽️' },
+]
 
 export default async function CustomerCardView({
   customer,
@@ -22,84 +23,95 @@ export default async function CustomerCardView({
   const scanUrl = `${proto}://${host}/scan/${uniqueId}`
   const qrDataUrl = await QRCode.toDataURL(scanUrl, { width: 280, margin: 2 })
 
-  const { stamp_count: stampCount, name } = customer
-  const nextMilestone = [3, 6, 10].find(n => n > stampCount)
-  const stampsToGo = nextMilestone ? nextMilestone - stampCount : 0
+  const { stamp_count: totalPoints, name } = customer
+  const nextTier = TIERS.find(t => t.points > totalPoints)
+  const ptsToNext = nextTier ? nextTier.points - totalPoints : 0
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-stone-100 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-amber-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
+        {/* Logo badge */}
         <div className="flex justify-center mb-6">
-          <Image
-            src="/vve-logo.png"
-            alt="VVE Cafe"
-            width={80}
-            height={80}
-            className="rounded-2xl shadow-md object-cover"
-          />
-        </div>
-
-        <div className="text-center mb-5">
-          <h1 className="text-2xl font-bold text-stone-800">Hi, {name}! ☕</h1>
-          <p className="text-stone-500 mt-1">
-            You have{' '}
-            <span className="text-amber-600 font-bold">{stampCount}</span>{' '}
-            stamp{stampCount !== 1 ? 's' : ''}
-          </p>
-          {nextMilestone && (
-            <p className="text-xs text-stone-400 mt-1">
-              {stampsToGo} more for your {REWARDS[nextMilestone]}
-            </p>
-          )}
-          {stampCount >= 10 && (
-            <p className="text-sm font-semibold text-amber-600 mt-1">
-              🎉 Card complete! Claim your reward.
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-md p-5 mb-4">
-          <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center mb-4 font-semibold">
-            Your Stamp Card
-          </p>
-          <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: 10 }).map((_, i) => {
-              const num = i + 1
-              const filled = num <= stampCount
-              const reward = REWARDS[num]
-              return (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
-                      filled ? 'bg-amber-400 text-white shadow-sm' : 'bg-stone-100 text-stone-300'
-                    }`}
-                  >
-                    {filled ? '☕' : num}
-                  </div>
-                  {reward && (
-                    <span
-                      className={`text-[8px] text-center leading-tight font-semibold ${
-                        filled ? 'text-amber-500' : 'text-stone-300'
-                      }`}
-                    >
-                      {reward}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
+          <div
+            className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg"
+            style={{ background: BRAND }}
+          >
+            <span className="text-white text-3xl font-black">EA</span>
           </div>
         </div>
 
+        {/* Points balance */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-stone-800">Hi, {name}! 🇳🇬</h1>
+          <p className="text-stone-500 text-sm mt-1">Your VIP Points Balance</p>
+          <p className="text-6xl font-black mt-2" style={{ color: BRAND }}>{totalPoints}</p>
+          <p className="text-stone-400 text-sm font-semibold uppercase tracking-widest">points</p>
+          {nextTier && (
+            <p className="text-xs text-stone-400 mt-2">
+              {ptsToNext} more points to your next reward
+            </p>
+          )}
+          {!nextTier && (
+            <p className="text-sm font-semibold mt-2" style={{ color: BRAND }}>
+              🎉 All rewards unlocked — you&apos;re a VIP!
+            </p>
+          )}
+        </div>
+
+        {/* Tier rewards */}
+        <div className="bg-white rounded-3xl shadow-md p-5 mb-4 space-y-3">
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center font-semibold mb-4">
+            Reward Menu
+          </p>
+          {TIERS.map((tier) => {
+            const unlocked = totalPoints >= tier.points
+            const progress = Math.min(totalPoints / tier.points, 1)
+            return (
+              <div key={tier.points} className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{tier.emoji}</span>
+                    <div>
+                      <p className={`text-sm font-bold ${unlocked ? 'text-stone-800' : 'text-stone-400'}`}>
+                        {tier.reward}
+                      </p>
+                      <p className="text-xs text-stone-400">{tier.points} pts</p>
+                    </div>
+                  </div>
+                  {unlocked ? (
+                    <span
+                      className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                      style={{ background: BRAND }}
+                    >
+                      UNLOCKED ✓
+                    </span>
+                  ) : (
+                    <span className="text-xs text-stone-400 font-semibold">
+                      {tier.points - totalPoints} pts away
+                    </span>
+                  )}
+                </div>
+                <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${progress * 100}%`, background: BRAND }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* QR code */}
         <div className="bg-white rounded-3xl shadow-md p-6 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qrDataUrl} alt="Your QR Code" className="w-48 h-48 mx-auto mb-3" />
-          <p className="text-stone-400 text-sm font-medium">Show this to the barista</p>
+          <p className="text-stone-400 text-sm font-medium">Show this at the till to earn points</p>
         </div>
 
         <p className="text-center text-stone-400 text-xs mt-4">
-          Bookmark this page — it&apos;s your card.
+          Bookmark this page — it&apos;s your VIP card.
         </p>
       </div>
     </main>

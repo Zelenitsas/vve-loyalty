@@ -13,8 +13,8 @@ export default function RegisterForm() {
         <div className="text-6xl mb-4">📬</div>
         <h2 className="text-xl font-bold text-stone-800 mb-2">Welcome, {state.name}!</h2>
         <p className="text-stone-500 text-sm leading-relaxed">
-          Your stamp card has been sent to your inbox.
-          <br />Open it and save it — show it on every visit.
+          You&apos;re now part of the Ebe Ano VIP family.
+          <br />Start earning points on your first visit!
         </p>
       </div>
     )
@@ -31,7 +31,7 @@ export default function RegisterForm() {
           type="text"
           required
           placeholder="Your first name"
-          className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 text-base bg-stone-50"
+          className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-400 text-base bg-stone-50"
         />
       </div>
 
@@ -44,7 +44,7 @@ export default function RegisterForm() {
           type="email"
           required
           placeholder="your@email.com"
-          className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 text-base bg-stone-50"
+          className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 text-stone-800 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-400 text-base bg-stone-50"
         />
       </div>
 
@@ -57,15 +57,16 @@ export default function RegisterForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-bold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+        style={{ background: '#C2410C' }}
+        className="w-full hover:opacity-90 active:scale-[0.98] text-white font-bold py-4 rounded-2xl text-base transition-all flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
       >
         {isPending ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Creating your card…
+            Joining VIP…
           </>
         ) : (
-          'Get My Stamp Card ☕'
+          'Join Ebe Ano VIP 🇳🇬'
         )}
       </button>
     </form>
