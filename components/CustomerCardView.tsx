@@ -1,20 +1,15 @@
 import QRCode from 'qrcode'
 import { headers } from 'next/headers'
-import type { Customer } from '@/lib/supabase'
-import Image from 'next/image'
-
-const REWARDS: Record<number, string> = {
-  3: 'Cookie 🍪',
-  6: 'Matcha 🍵',
-  10: 'Toast 🍞',
-}
+import type { Customer, Venue } from '@/lib/supabase'
 
 export default async function CustomerCardView({
   customer,
   uniqueId,
+  venue,
 }: {
   customer: Customer
   uniqueId: string
+  venue: Venue | null
 }) {
   const h = await headers()
   const host = h.get('host') ?? 'localhost:3000'
@@ -23,37 +18,49 @@ export default async function CustomerCardView({
   const qrDataUrl = await QRCode.toDataURL(scanUrl, { width: 280, margin: 2 })
 
   const { stamp_count: stampCount, name } = customer
-  const nextMilestone = [3, 6, 10].find(n => n > stampCount)
-  const stampsToGo = nextMilestone ? nextMilestone - stampCount : 0
+  const brand = venue?.brand_color ?? '#D97706'
+  const bgColor = venue?.background_color ?? `${brand}18`
+  const rewards = venue?.rewards ?? [{ stamp: 10, label: 'Reward 🎁' }]
+  const totalStamps = rewards[rewards.length - 1]?.stamp ?? 10
+  const nextReward = rewards.find(r => r.stamp > stampCount)
+  const stampsToGo = (nextReward?.stamp ?? totalStamps) - stampCount
+  const cardComplete = stampCount >= totalStamps
+  const stampIcon = venue?.stamp_icon ?? '☕'
+  const overrideMap = Object.fromEntries((venue?.stamp_overrides ?? []).map(o => [o.stamp, o.icon]))
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-stone-100 flex items-center justify-center p-4">
+    <main
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: bgColor }}
+    >
       <div className="w-full max-w-sm">
 
-        <div className="flex justify-center mb-6">
-          <Image
-            src="/vve-logo.png"
-            alt="VVE Cafe"
-            width={80}
-            height={80}
-            className="rounded-2xl shadow-md object-cover"
-          />
-        </div>
+        {venue?.logo_url && (
+          <div className="flex justify-center mb-6">
+            <div style={{ width: 96, height: 96, borderRadius: '18px', background: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+              <img
+                src={venue.logo_url}
+                alt={venue.name}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="text-center mb-5">
-          <h1 className="text-2xl font-bold text-stone-800">Hi, {name}! ☕</h1>
+          <h1 className="text-2xl font-bold text-stone-800">Hi, {name}!</h1>
           <p className="text-stone-500 mt-1">
             You have{' '}
-            <span className="text-amber-600 font-bold">{stampCount}</span>{' '}
+            <span className="font-bold" style={{ color: brand }}>{stampCount}</span>{' '}
             stamp{stampCount !== 1 ? 's' : ''}
           </p>
-          {nextMilestone && (
+          {!cardComplete && nextReward && (
             <p className="text-xs text-stone-400 mt-1">
-              {stampsToGo} more for your {REWARDS[nextMilestone]}
+              {stampsToGo} more for {nextReward.label}
             </p>
           )}
-          {stampCount >= 10 && (
-            <p className="text-sm font-semibold text-amber-600 mt-1">
+          {cardComplete && (
+            <p className="text-sm font-semibold mt-1" style={{ color: brand }}>
               🎉 Card complete! Claim your reward.
             </p>
           )}
@@ -63,27 +70,29 @@ export default async function CustomerCardView({
           <p className="text-[10px] text-stone-400 uppercase tracking-widest text-center mb-4 font-semibold">
             Your Stamp Card
           </p>
-          <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: 10 }).map((_, i) => {
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(totalStamps, 5)}, 1fr)` }}>
+            {Array.from({ length: totalStamps }).map((_, i) => {
               const num = i + 1
               const filled = num <= stampCount
-              const reward = REWARDS[num]
+              const icon = overrideMap[num] ?? stampIcon
+              const rewardHere = rewards.find(r => r.stamp === num)
               return (
                 <div key={i} className="flex flex-col items-center gap-1">
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
-                      filled ? 'bg-amber-400 text-white shadow-sm' : 'bg-stone-100 text-stone-300'
-                    }`}
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-xl transition-colors"
+                    style={{
+                      background: filled ? brand : '#f1f5f9',
+                      opacity: filled ? 1 : 0.4,
+                    }}
                   >
-                    {filled ? '☕' : num}
+                    {icon}
                   </div>
-                  {reward && (
+                  {rewardHere && (
                     <span
-                      className={`text-[8px] text-center leading-tight font-semibold ${
-                        filled ? 'text-amber-500' : 'text-stone-300'
-                      }`}
+                      className="text-[8px] text-center leading-tight font-semibold"
+                      style={{ color: filled ? brand : '#cbd5e1' }}
                     >
-                      {reward}
+                      {rewardHere.label.split(' ').slice(0, 2).join(' ')}
                     </span>
                   )}
                 </div>
@@ -95,7 +104,7 @@ export default async function CustomerCardView({
         <div className="bg-white rounded-3xl shadow-md p-6 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qrDataUrl} alt="Your QR Code" className="w-48 h-48 mx-auto mb-3" />
-          <p className="text-stone-400 text-sm font-medium">Show this to the barista</p>
+          <p className="text-stone-400 text-sm font-medium">Show this at the counter</p>
         </div>
 
         <p className="text-center text-stone-400 text-xs mt-4">
