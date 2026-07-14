@@ -45,6 +45,13 @@ export default async function Dashboard({ venue }: { venue: Venue }) {
       <div className="px-5 py-6 border-b border-stone-800">
         <p className="text-stone-500 text-[10px] uppercase tracking-widest mb-4">Shop QR Code</p>
         <ShopQR registerUrl={registerUrl} slug={venue.slug} />
+        <Link
+          href={`/cashier/${venue.slug}/poster`}
+          className="mt-3 inline-block text-sm font-semibold hover:underline"
+          style={{ color: venue.brand_color }}
+        >
+          Print A4 poster →
+        </Link>
       </div>
 
       <div className="px-5 py-6">
