@@ -51,7 +51,7 @@ export default function PosterView({
             </p>
           )}
 
-          <p className="mt-10 text-3xl font-bold text-center text-stone-800">
+          <p className="mt-10 text-5xl font-extrabold text-center text-stone-900">
             Scan to join {venue.name}&apos;s rewards
           </p>
         </div>
@@ -61,7 +61,7 @@ export default function PosterView({
 
         <div className="flex flex-col items-center">
           {rewardLine && (
-            <p className="text-2xl font-semibold text-center" style={{ color: venue.brand_color }}>
+            <p className="text-4xl font-extrabold text-center text-stone-900">
               {rewardLine}
             </p>
           )}
