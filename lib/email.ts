@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import type { Venue } from './supabase'
 import { buildUnsubscribeUrl } from './hmac'
 
@@ -319,14 +319,26 @@ function buildReengagementHtml({
 </html>`
 }
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  })
+const SENDER_ADDRESS = 'noreply@lyloyalty.com'
+
+function getResendClient() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
+
+async function sendViaResend(payload: {
+  from: string
+  to: string
+  replyTo?: string
+  subject: string
+  headers?: Record<string, string>
+  html?: string
+  text?: string
+}) {
+  const resend = getResendClient()
+  const { error } = await resend.emails.send(payload as Parameters<typeof resend.emails.send>[0])
+  if (error) {
+    throw new Error(`Resend send failed: ${error.message}`)
+  }
 }
 
 export async function sendStampCardEmail({
@@ -366,9 +378,8 @@ export async function sendStampCardEmail({
 }) {
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(scanUrl)}`
   const unsubscribeUrl = baseUrl && uniqueId ? buildUnsubscribeUrl(baseUrl, uniqueId) : undefined
-  const transporter = createTransporter()
-  await transporter.sendMail({
-    from: `${venueName} Loyalty <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `${venueName} Loyalty <${SENDER_ADDRESS}>`,
     replyTo: ownerEmail ?? undefined,
     to: email,
     subject: `Your ${venueName} Stamp Card`,
@@ -418,9 +429,8 @@ export async function sendReengagementEmail({
 }) {
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(scanUrl)}`
   const unsubscribeUrl = baseUrl && uniqueId ? buildUnsubscribeUrl(baseUrl, uniqueId) : undefined
-  const transporter = createTransporter()
-  await transporter.sendMail({
-    from: `${venueName} Loyalty <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `${venueName} Loyalty <${SENDER_ADDRESS}>`,
     replyTo: ownerEmail ?? undefined,
     to: email,
     subject: offer ? `A special offer for you at ${venueName}` : `We miss you at ${venueName}, ${name}!`,
@@ -547,12 +557,11 @@ export async function sendWinBackEmail({
   uniqueId?: string
   offerExpiryDays?: number
 }) {
-  const transporter = createTransporter()
   const bgColor = backgroundColor || `${brandColor}18`
   const unsubscribeUrl = baseUrl && uniqueId ? buildUnsubscribeUrl(baseUrl, uniqueId) : undefined
 
-  await transporter.sendMail({
-    from: `${venueName} Loyalty <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `${venueName} Loyalty <${SENDER_ADDRESS}>`,
     replyTo: ownerEmail ?? undefined,
     to: email,
     subject,
@@ -669,12 +678,11 @@ export async function sendBirthdayEmail({
   baseUrl?: string
   uniqueId?: string
 }) {
-  const transporter = createTransporter()
   const bgColor = backgroundColor || `${brandColor}18`
   const unsubscribeUrl = baseUrl && uniqueId ? buildUnsubscribeUrl(baseUrl, uniqueId) : undefined
 
-  await transporter.sendMail({
-    from: `${venueName} Loyalty <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `${venueName} Loyalty <${SENDER_ADDRESS}>`,
     replyTo: ownerEmail ?? undefined,
     to: email,
     subject: `🎂 Happy birthday from ${venueName}!`,
@@ -860,9 +868,8 @@ export async function sendOwnerRecap(args: {
   dashboardUrl: string
 }) {
   const html = buildOwnerRecapHtml(args.stats, args.dateHuman, args.dashboardUrl)
-  const transporter = createTransporter()
-  await transporter.sendMail({
-    from: `${args.stats.venue.name} Loyalty <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `${args.stats.venue.name} Loyalty <${SENDER_ADDRESS}>`,
     to: args.ownerEmail,
     subject: `Your ${args.stats.venue.name} daily recap — ${args.dateHuman}`,
     html,
@@ -910,9 +917,8 @@ END OF DIGEST · sent at ${args.sentAtBerlin} Berlin
 ═══════════════════════════════════════════════
 `
 
-  const transporter = createTransporter()
-  await transporter.sendMail({
-    from: `LY Daily Digest <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `LY Daily Digest <${SENDER_ADDRESS}>`,
     to: args.toEmail,
     subject: `LY Daily Digest — ${args.dateHuman} · ${totalReporting} venue${totalReporting === 1 ? '' : 's'}`,
     text,
@@ -952,9 +958,8 @@ Submitted: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/Berlin' })} 
   <p style="margin:24px 0 0;font-size:11px;color:#6B645B;">Submitted ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/Berlin' })} Berlin time.</p>
 </body></html>`
 
-  const transporter = createTransporter()
-  await transporter.sendMail({
-    from: `LY Loyalty <${process.env.GMAIL_USER}>`,
+  await sendViaResend({
+    from: `LY Loyalty <${SENDER_ADDRESS}>`,
     to: args.toEmail,
     replyTo: args.email,
     subject: `New lead: ${args.cafeName}`,
